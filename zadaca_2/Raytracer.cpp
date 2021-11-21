@@ -190,8 +190,9 @@ Vec3f cast_ray(const Vec3f &orig, const Vec3f &dir, const Objects &objs, const L
       Vec3f shadow_orig, shadow_hit_point, shadow_hit_normal;
       Material shadow_material;
 
-      if (light_dir * hit_normal < 0) {shadow_orig = hit_point - hit_normal * 0.001; hit_normal = -hit_normal;}
-      else shadow_orig = hit_point + hit_normal * 0.001;
+      if (light_dir * hit_normal < 0) hit_normal = -hit_normal;
+      
+      shadow_orig = hit_point + hit_normal * 0.001;
 
       if(scene_intersect(shadow_orig, light_dir, objs, shadow_hit_point, shadow_material, shadow_hit_normal) && (shadow_orig - shadow_hit_point).norm() < light_dist) continue;
 
@@ -204,7 +205,7 @@ Vec3f cast_ray(const Vec3f &orig, const Vec3f &dir, const Objects &objs, const L
     Vec3f refraction_vec = dir + (-hit_normal)*hit_material.refraction_index; // Racuno sam ovak zbog jednostavnosti
     return hit_material.diffuse_color * hit_material.albedo[0] * diffuse_light_intensity
            + Vec3f(1,1,1) * hit_material.albedo[1] * specular_light_intensity 
-           + cast_ray(hit_point, (dir - (hit_normal*(dir*hit_normal))*2.0), objs, lights, depth+1)*mirroring_intensity
+           + cast_ray(hit_point+hit_normal*0.01, (dir - (hit_normal*(dir*hit_normal))*2.0), objs, lights, depth+1)*mirroring_intensity
            + cast_ray(hit_point+hit_normal*0.01, refraction_vec, objs, lights, (hit_material.alpha == 1 ? 13 : depth+1))*(1-hit_material.alpha);
   }
 }
