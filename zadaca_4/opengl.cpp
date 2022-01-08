@@ -59,11 +59,10 @@ const char *fragmentShaderSource = "#version 330 core\n"
   "  vec3 reflectDir = reflect(-lightDir, norm);\n"
   "  float diff = max(dot(norm, lightDir), 0.0);\n"
   "  float spec = pow(max(dot(viewDir, reflectDir), 0.0), shininess);\n"
-  "  vec3 a_res = vec3(0.2) * lightColor * vec3(texture(diffuse, TexCoords));\n"
-  "  vec3 d_res = vec3(diff) * lightColor * vec3(texture(diffuse, TexCoords));\n"
-  "  vec3 s_res = vec3(spec) * lightColor * vec3(texture(specular, TexCoords));\n"
-  //"  FragColor = vec4(a_res + d_res + s_res, 1.0);\n"
-  "  FragColor = mix(texture(diffuse, TexCoords), texture(specular, TexCoords), 0.5);\n"
+  "  vec3 a_res = vec3(0.2) * vec3(1.0, 1.0, 1.0) * vec3(texture(diffuse, TexCoords));\n"
+  "  vec3 d_res = vec3(diff) * vec3(1.0, 1.0, 1.0) * vec3(texture(diffuse, TexCoords));\n"
+  "  vec3 s_res = vec3(spec) * vec3(1.0, 1.0, 1.0) * vec3(texture(specular, TexCoords));\n"
+  "  FragColor = vec4(a_res + d_res + s_res, 1.0);\n"
   "}\0";
 
 const char *vLightShaderSource = "#version 330 core\n"
@@ -202,22 +201,24 @@ int main() {
   unsigned int diff_chest = loadTexture("./chest_diffuse.jpg");
   unsigned int spec_chest = loadTexture("./chest_specular.jpg");
 
-  Light light(vec3(1.0, 1.0, 1.0), vec3(3.0, 2.0, -2.0));
+  Light light(vec3(1.0, 1.0, 1.0), vec3(0.0, 0.0, 3.0));
 
   vector<Mesh*> meshes;
-  
-  Mesh cube("./cube.obj", diff_chest, spec_chest, 15.f, vec3(1.0, 1.0, 1.0), vec3(-3.0, -3.0, 0.0));
-  Mesh cube2("./cube.obj", diff_bricks, spec_bricks, 15.f, vec3(1.0, 1.0, 1.0), vec3(-3.0, 3.0, 0.0));
-  Mesh pyramid("./pyramid.obj", diff_bricks, spec_bricks, 15.f, vec3(1.0, 1.0, 1.0), vec3(0.0, 0.0, 0.0));
-  Mesh pyramid2("./pyramid.obj", diff_chest, spec_chest, 15.f, vec3(1.0, 1.0, 1.0), vec3(0.0, -1.0, 0.0));
+  // filename text_id -||- shininess scale position
+  Mesh cube("./cube.obj", diff_chest, spec_chest, 1000.f, vec3(1.0, 1.0, 1.0), vec3(-3.0, -3.0, 0.0));
+  Mesh cube2("./cube.obj", diff_bricks, spec_bricks, 1000.f, vec3(1.0, 1.0, 1.0), vec3(-3.0, 3.0, 0.0));
+  Mesh pyramid("./pyramid.obj", diff_bricks, spec_bricks, 1000.f, vec3(1.0, 1.0, 1.0), vec3(3.0, 3.0, 0.0));
+  Mesh pyramid2("./pyramid.obj", diff_chest, spec_chest, 1000.f, vec3(1.0, 1.0, 1.0), vec3(3.0, -3.0, 0.0));
+  Mesh cube3("./cube.obj", diff_chest, spec_chest, 1000.f, vec3(0.77, 1.2, 1.0), vec3(-3.0, -3.0, 0.0));
 
   meshes.push_back(&cube);
-  meshes.push_back(&pyramid);
   meshes.push_back(&cube2);
+  meshes.push_back(&pyramid);
   meshes.push_back(&pyramid2);
+  meshes.push_back(&cube3);
 
-  vec3 cameraPos = vec3(0.0f, 0.0f, 0.0f);
-  vec3 cameraTarget = vec3(0.0f, 0.0f, 1.0f);
+  vec3 cameraPos = vec3(0.0f, 0.0f, 2.0f);
+  vec3 cameraTarget = vec3(0.0f, 0.0f, 0.0f);
   vec3 cameraDirection = normalize(cameraPos - cameraTarget);
   vec3 up = vec3(0.0f, 1.0f, 0.0f); 
   vec3 cameraRight = normalize(cross(up, cameraDirection));
@@ -237,29 +238,29 @@ int main() {
     glUniform3f(glGetUniformLocation(shaderProgram, "viewPos"), cameraPos.x, cameraPos.y, cameraPos.z);
 
 
-    for(int i = 0; i < meshes.size(); i++){
+    for(auto m:meshes){
       glActiveTexture(GL_TEXTURE0);
-      glBindTexture(GL_TEXTURE_2D, meshes[i]->specular);
+      glBindTexture(GL_TEXTURE_2D, m->specular);
       glUniform1i(glGetUniformLocation(shaderProgram, "specular"), 0);
       glActiveTexture(GL_TEXTURE1);
-      glBindTexture(GL_TEXTURE_2D, meshes[i]->diffuse);
+      glBindTexture(GL_TEXTURE_2D, m->diffuse);
       glUniform1i(glGetUniformLocation(shaderProgram, "diffuse"), 1);
-      glUniform1f(glGetUniformLocation(shaderProgram, "shininess"), meshes[i]->shininess);
+      glUniform1f(glGetUniformLocation(shaderProgram, "shininess"), m->shininess);
 
       mat4 model = mat4(1.0f);
-      model = scale(model, meshes[i]->scale);
-      model = translate(model, meshes[i]->translation);
+      model = scale(model, m->scale);
+      model = translate(model, m->translation);
       model = rotate(model, (float)glfwGetTime()*rotationCoef, vec3(0.0f, 1.0f, 0.0f));
       glUniformMatrix4fv(glGetUniformLocation(shaderProgram, "model"), 1, GL_FALSE, &model[0][0]);
       glUniformMatrix4fv(glGetUniformLocation(shaderProgram, "view"), 1, GL_FALSE, &view[0][0]);
       glUniformMatrix4fv(glGetUniformLocation(shaderProgram, "projection"), 1, GL_FALSE, &projection[0][0]);
 
       glUseProgram(shaderProgram);
-      meshes[i]->drawMesh();
+      m->drawMesh();
     }
 
     glUseProgram(lightShaderProgram);
-    glUniform3f(glGetUniformLocation(lightShaderProgram, "lightColor"), light.color.x, light.color.y, light.color.z);
+     glUniform3fv(glGetUniformLocation(lightShaderProgram, "lightColor"), 1, &light.color[0]);
     mat4 transformation = mat4(1.0f);
     transformation = translate(transformation, light.obj.translation);
     transformation = scale(transformation, light.obj.scale);
