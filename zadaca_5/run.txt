@@ -1,0 +1,1 @@
+g++ main.cpp glad\glad.c glfw\lib-mingw-w64\libglfw3.a LineRenderer.cpp CircleRenderer.cpp -l gdi32 -l opengl32 -std=c++17
